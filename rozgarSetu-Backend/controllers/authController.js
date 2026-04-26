@@ -124,60 +124,144 @@
 //   }
 // };
 
-const client = require("../config/twilio");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const WorkerProfile = require("../models/WorkerProfile");
 
-const serviceSid = process.env.TWILIO_VERIFY_SERVICE_SID;
+// In-memory OTP store (for development)
+// In production, use Redis or database
+const otpStore = new Map();
+const OTP_EXPIRY_TIME = 10 * 60 * 1000; // 10 minutes
+
+// Generate 6-digit OTP
+const generateOTP = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 
 /* ---------------- SEND OTP ---------------- */
 
+// exports.sendOtp = async (req, res) => {
+
+  // try {
+
+  //   const { phone } = req.body;
+
+  //   if (!phone) {
+  //     return res.status(400).json({
+  //       success: false,
+  //       message: "Phone number required"
+  //     });
+  //   }
+
+  //   // Validate Indian phone number (10 digits, starts with 6-9)
+  //   if (!/^\d{10}$/.test(phone) || !/^[6-9]/.test(phone)) {
+  //     return res.status(400).json({
+  //       success: false,
+  //       message: "Invalid phone number. Please enter a valid 10-digit Indian mobile number."
+  //     });
+  //   }
+
+  //   const otp = generateOTP();
+    
+  //   // Store OTP with expiry
+  //   otpStore.set(phone, {
+  //     otp,
+  //     createdAt: Date.now(),
+  //     attempts: 0
+  //   });
+
+  //   // Clear OTP after expiry time
+  //   setTimeout(() => {
+  //     otpStore.delete(phone);
+  //   }, OTP_EXPIRY_TIME);
+
+  //   // In development, log the OTP to console
+  //   // In production, send via SMS using Twilio or another provider
+  //   console.log(`🔐 OTP for ${phone}: ${otp}`);
+
+  //   res.json({
+  //     success: true,
+  //     message: "OTP sent successfully",
+  //     // For development only - remove in production
+  //     otp: process.env.NODE_ENV === 'development' ? otp : undefined
+  //   });
+
+  // } catch (error) {
+
+  //   res.status(500).json({
+  //     success: false,
+  //     message: error.message
+  //   });
+
+  // }
+
+  const twilio = require("twilio");
+
+const client = twilio(
+  process.env.TWILIO_ACCOUNT_SID,
+  process.env.TWILIO_AUTH_TOKEN
+);
+
 exports.sendOtp = async (req, res) => {
-
   try {
-
     const { phone } = req.body;
 
     if (!phone) {
       return res.status(400).json({
         success: false,
-        message: "Phone number required"
+        message: "Phone number required",
       });
     }
 
-    if (!/^[6-9]\d{9}$/.test(phone)) {
+    // Validate Indian number
+    if (!/^\d{10}$/.test(phone) || !/^[6-9]/.test(phone)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid Indian mobile number"
+        message: "Invalid phone number",
       });
     }
 
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Store OTP
+    otpStore.set(phone, {
+      otp,
+      createdAt: Date.now(),
+      attempts: 0,
+    });
+
+    setTimeout(() => {
+      otpStore.delete(phone);
+    }, OTP_EXPIRY_TIME);
+
+    // ✅ FORMAT NUMBER (India)
     const fullPhone = `+91${phone}`;
 
-    await client.verify.v2
-      .services(serviceSid)
-      .verifications.create({
-        to: fullPhone,
-        channel: "sms"
-      });
+    // 🔥 SEND SMS USING TWILIO
+    await client.messages.create({
+      body: `Your OTP is ${otp}. Valid for 10 minutes.`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: fullPhone,
+    });
+
+    console.log(`OTP sent to ${fullPhone}: ${otp}`);
 
     res.json({
       success: true,
-      message: "OTP sent to mobile number"
+      message: "OTP sent successfully",
     });
 
   } catch (error) {
+    console.error("Twilio Error:", error);
 
     res.status(500).json({
       success: false,
-      message: error.message
+      message: "Failed to send OTP",
     });
-
   }
-
 };
+// };
 
 /* ---------------- GET PROFILE ---------------- */
 
@@ -247,7 +331,7 @@ exports.updateProfile = async (req, res) => {
 };
 
 
-/* ---------------- VERIFY OTP ---------------- */
+/* ---------------- VERIFY OTP + LOGIN/SIGNUP ---------------- */
 
 exports.verifyOtp = async (req, res) => {
 
@@ -256,24 +340,46 @@ exports.verifyOtp = async (req, res) => {
     const { name, phone, otp, role } = req.body;
     const effectiveRole = role || "worker";
 
-    const fullPhone = `+91${phone}`;
-
-    const verificationCheck = await client.verify.v2
-      .services(serviceSid)
-      .verificationChecks.create({
-        to: fullPhone,
-        code: otp
+    // Validate required fields
+    if (!phone || !otp) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number and OTP are required"
       });
+    }
 
-    if (verificationCheck.status !== "approved") {
+    // Check if OTP exists and is valid
+    const otpData = otpStore.get(phone);
+
+    if (!otpData) {
+      return res.status(400).json({
+        success: false,
+        message: "OTP expired or invalid. Please request a new OTP."
+      });
+    }
+
+    // Check if OTP is correct
+    if (otpData.otp !== otp) {
+      otpData.attempts += 1;
+      
+      if (otpData.attempts >= 3) {
+        otpStore.delete(phone);
+        return res.status(400).json({
+          success: false,
+          message: "Too many failed attempts. Please request a new OTP."
+        });
+      }
 
       return res.status(400).json({
         success: false,
-        message: "Invalid OTP"
+        message: `Invalid OTP. ${3 - otpData.attempts} attempts remaining.`
       });
-
     }
 
+    // OTP is valid, delete it
+    otpStore.delete(phone);
+
+    // Find or create user
     let user = await User.findOne({ phone });
 
     if (!user) {
@@ -281,6 +387,7 @@ exports.verifyOtp = async (req, res) => {
         name,
         phone,
         role: effectiveRole,
+        isVerified: true
       });
 
       // Create worker profile if role is worker
@@ -288,17 +395,18 @@ exports.verifyOtp = async (req, res) => {
         await WorkerProfile.create({
           userId: user._id,
           name: name,
-          role: "worker",
+          role: "worker"
         });
       }
     }
 
+    // Generate JWT token
     const token = jwt.sign(
       {
         id: user._id,
-        role: effectiveRole,
+        role: user.role || effectiveRole,
       },
-      process.env.JWT_SECRET,
+      process.env.JWT_SECRET || "your-secret-key-here",
       { expiresIn: "7d" }
     );
 
@@ -306,14 +414,20 @@ exports.verifyOtp = async (req, res) => {
       success: true,
       message: "Login successful",
       token,
-      user
+      user: {
+        id: user._id,
+        name: user.name,
+        phone: user.phone,
+        role: user.role || effectiveRole,
+      }
     });
 
   } catch (error) {
 
+    console.error("OTP verification error:", error);
     res.status(500).json({
       success: false,
-      message: error.message
+      message: error.message || "OTP verification failed"
     });
 
   }

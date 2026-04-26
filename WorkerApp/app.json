@@ -1,0 +1,25 @@
+{
+  "expo": {
+    "name": "RozgarSetu Worker",
+    "slug": "rozgarsetu-worker",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "resizeMode": "contain",
+      "backgroundColor": "#0B5D51"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#0B5D51"
+      },
+      "edgeToEdgeEnabled": true
+    }
+  }
+}
