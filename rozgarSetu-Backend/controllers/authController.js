@@ -138,70 +138,38 @@ const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// Twilio SMS sending
+const sendSMSViaTwilio = async (phone, otp) => {
+  try {
+    // Check if Twilio is configured
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN || !process.env.TWILIO_PHONE_NUMBER) {
+      console.warn("⚠️  Twilio not configured. SMS will not be sent.");
+      return false;
+    }
+
+    const twilio = require("twilio");
+    const client = twilio(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_AUTH_TOKEN
+    );
+
+    const fullPhone = `+91${phone}`;
+
+    await client.messages.create({
+      body: `Your RozgarSetu OTP is ${otp}. Valid for 10 minutes. Do not share this OTP.`,
+      from: process.env.TWILIO_PHONE_NUMBER,
+      to: fullPhone,
+    });
+
+    console.log(`✅ SMS sent to ${fullPhone}`);
+    return true;
+  } catch (error) {
+    console.error("❌ Twilio SMS Error:", error.message);
+    return false;
+  }
+};
 
 /* ---------------- SEND OTP ---------------- */
-
-// exports.sendOtp = async (req, res) => {
-
-  // try {
-
-  //   const { phone } = req.body;
-
-  //   if (!phone) {
-  //     return res.status(400).json({
-  //       success: false,
-  //       message: "Phone number required"
-  //     });
-  //   }
-
-  //   // Validate Indian phone number (10 digits, starts with 6-9)
-  //   if (!/^\d{10}$/.test(phone) || !/^[6-9]/.test(phone)) {
-  //     return res.status(400).json({
-  //       success: false,
-  //       message: "Invalid phone number. Please enter a valid 10-digit Indian mobile number."
-  //     });
-  //   }
-
-  //   const otp = generateOTP();
-    
-  //   // Store OTP with expiry
-  //   otpStore.set(phone, {
-  //     otp,
-  //     createdAt: Date.now(),
-  //     attempts: 0
-  //   });
-
-  //   // Clear OTP after expiry time
-  //   setTimeout(() => {
-  //     otpStore.delete(phone);
-  //   }, OTP_EXPIRY_TIME);
-
-  //   // In development, log the OTP to console
-  //   // In production, send via SMS using Twilio or another provider
-  //   console.log(`🔐 OTP for ${phone}: ${otp}`);
-
-  //   res.json({
-  //     success: true,
-  //     message: "OTP sent successfully",
-  //     // For development only - remove in production
-  //     otp: process.env.NODE_ENV === 'development' ? otp : undefined
-  //   });
-
-  // } catch (error) {
-
-  //   res.status(500).json({
-  //     success: false,
-  //     message: error.message
-  //   });
-
-  // }
-
-  const twilio = require("twilio");
-
-const client = twilio(
-  process.env.TWILIO_ACCOUNT_SID,
-  process.env.TWILIO_AUTH_TOKEN
-);
 
 exports.sendOtp = async (req, res) => {
   try {
@@ -210,58 +178,53 @@ exports.sendOtp = async (req, res) => {
     if (!phone) {
       return res.status(400).json({
         success: false,
-        message: "Phone number required",
+        message: "Phone number required"
       });
     }
 
-    // Validate Indian number
+    // Validate Indian phone number (10 digits, starts with 6-9)
     if (!/^\d{10}$/.test(phone) || !/^[6-9]/.test(phone)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid phone number",
+        message: "Invalid phone number. Please enter a valid 10-digit Indian mobile number."
       });
     }
 
-    const otp = Math.floor(100000 + Math.random() * 900000).toString();
-
-    // Store OTP
+    const otp = generateOTP();
+    
+    // Store OTP with expiry
     otpStore.set(phone, {
       otp,
       createdAt: Date.now(),
-      attempts: 0,
+      attempts: 0
     });
 
+    // Clear OTP after expiry time
     setTimeout(() => {
       otpStore.delete(phone);
     }, OTP_EXPIRY_TIME);
 
-    // ✅ FORMAT NUMBER (India)
-    const fullPhone = `+91${phone}`;
+    // Try to send SMS via Twilio
+    const smsSent = await sendSMSViaTwilio(phone, otp);
 
-    // 🔥 SEND SMS USING TWILIO
-    await client.messages.create({
-      body: `Your OTP is ${otp}. Valid for 10 minutes.`,
-      from: process.env.TWILIO_PHONE_NUMBER,
-      to: fullPhone,
-    });
-
-    console.log(`OTP sent to ${fullPhone}: ${otp}`);
+    // In development, also log to console
+    console.log(`🔐 OTP for ${phone}: ${otp}`);
 
     res.json({
       success: true,
-      message: "OTP sent successfully",
+      message: smsSent ? "OTP sent via SMS" : "OTP sent (check console in development)",
+      // For development only - remove in production
+      otp: process.env.NODE_ENV === 'development' ? otp : undefined
     });
 
   } catch (error) {
-    console.error("Twilio Error:", error);
-
+    console.error("Send OTP Error:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to send OTP",
+      message: error.message || "Failed to send OTP"
     });
   }
 };
-// };
 
 /* ---------------- GET PROFILE ---------------- */
 

@@ -25,17 +25,20 @@ export const LanguageProvider = ({ children }: { children: React.ReactNode }) =>
       try {
         const stored = await AsyncStorage.getItem(LANGUAGE_KEY);
         
-        if (stored && (stored === 'en' || stored === 'hi')) {
+        if (stored) {
+          // Accept any valid language code (en, hi, mr, hr, bh, bn, pa, ta, te)
           setLanguageState(stored as Language);
           setHasSelectedLanguage(true);
           console.log(`✅ Language loaded from storage: ${stored}`);
         } else {
-          // No language selected yet
+          // No language selected yet - use English as initial state
+          setLanguageState('en');
           setHasSelectedLanguage(false);
           console.log('📝 No language selected yet - showing language selection screen');
         }
       } catch (error) {
         console.error('Error loading language from AsyncStorage:', error);
+        setLanguageState('en');
         setHasSelectedLanguage(false);
       } finally {
         // Mark language as ready after attempting to load

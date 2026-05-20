@@ -1,6 +1,7 @@
 const WorkerProfile = require("../models/WorkerProfile");
 const Project = require("../models/Project");
 const User = require("../models/User");
+const JobApplication = require("../models/JobApplication");
 
 const getWorkerProfile = async (req, res) => {
   try {
@@ -27,7 +28,7 @@ const getWorkerDashboard = async (req, res) => {
 
     // Recommended: open jobs matching skills or location.
     const matchQuery = {
-      status: "open",
+      status: { $regex: /^open$/i },
       $or: [
         { skillType: { $in: skills } },
         ...(location ? [{ location }] : []),
@@ -43,25 +44,32 @@ const getWorkerDashboard = async (req, res) => {
       ? await Project.find({ _id: { $in: profile.savedJobs } }).populate("contractorId", "name phone location")
       : [];
 
-    const appliedJobs = profile?.appliedJobs?.length
-      ? await Project.find({ _id: { $in: profile.appliedJobs } }).populate("contractorId", "name phone location")
-      : [];
+    // Robust way: fetch all applications from JobApplication model
+    const jobApplications = await JobApplication.find({ workerId: req.user.id });
+    const appliedJobIds = jobApplications.map(a => a.jobId);
+    
+    // Fetch project details for these applications
+    const appliedProjects = await Project.find({ _id: { $in: appliedJobIds } })
+      .populate("contractorId", "name phone location");
 
-    // Add application status to applied jobs
-    const appliedJobsWithStatus = appliedJobs.map(job => {
-      const applicant = job.applicants?.find(a => a.workerId.toString() === req.user.id);
-      return {
-        ...job.toObject(),
-        applicationStatus: applicant?.status || 'pending',
-        appliedAt: applicant?.appliedAt,
-      };
-    });
+    // Helper to add status to projects
+    const addStatus = (projects) => {
+      return projects.map(job => {
+        const application = jobApplications.find(a => a.jobId.toString() === job._id.toString());
+        return {
+          ...job.toObject(),
+          applicationStatus: application?.status || 'PENDING',
+          isApplied: !!application,
+          appliedAt: application?.createdAt,
+        };
+      });
+    };
 
     res.json({
       success: true,
-      recommendedJobs,
-      savedJobs,
-      appliedJobs: appliedJobsWithStatus,
+      recommendedJobs: addStatus(recommendedJobs),
+      savedJobs: addStatus(savedJobs),
+      appliedJobs: addStatus(appliedProjects),
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -173,7 +181,19 @@ const applyToJob = async (req, res) => {
       await profile.save();
     }
 
-    // Also track applicants on the project so contractors can see them
+    // Track centrally in new JobApplication flow
+    const JobApplication = require("../models/JobApplication");
+    const existingApplication = await JobApplication.findOne({ jobId: projectId, workerId: req.user.id });
+    if (!existingApplication) {
+      const application = new JobApplication({
+        jobId: projectId,
+        workerId: req.user.id,
+        status: "PENDING"
+      });
+      await application.save();
+    }
+
+    // Keep old behavior as backward compatibility
     const Project = require("../models/Project");
     const project = await Project.findById(projectId);
     if (project) {

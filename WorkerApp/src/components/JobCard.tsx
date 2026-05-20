@@ -1,5 +1,5 @@
 import React from 'react';
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image, Pressable, StyleSheet, Text, View, ActivityIndicator, Linking } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { colors } from '../constants/theme';
 import { PrimaryButton } from './PrimaryButton';
@@ -9,18 +9,23 @@ interface JobCardProps {
   t: (key: string) => string;
   isSaved?: boolean;
   isApplied?: boolean;
+  isApplying?: boolean;
+  showMap?: boolean;
+  onChat?: () => void;
   onApply?: () => void;
+  onReject?: () => void;
   onSave?: () => void;
   status?: string;
 }
 
 const statusStyles: Record<string, { bg: string; text: string }> = {
   accepted: { bg: '#DCFCE7', text: colors.success },
+  approved: { bg: '#DCFCE7', text: colors.success },
   rejected: { bg: '#FEE2E2', text: colors.danger },
   pending: { bg: '#FEF3C7', text: '#B45309' },
 };
 
-export const JobCard = ({ job, t, isSaved, isApplied, onApply, onSave, status }: JobCardProps) => {
+export const JobCard = ({ job, t, isSaved, isApplied, isApplying, showMap, onChat, onApply, onReject, onSave, status }: JobCardProps) => {
   const badge = status ? statusStyles[status] ?? statusStyles.pending : null;
   const title = job.title || job.projectTitle || 'Untitled Project';
   const contractor = job.contractorName || job.contractorId?.name || job.contractor || '';
@@ -39,9 +44,9 @@ export const JobCard = ({ job, t, isSaved, isApplied, onApply, onSave, status }:
           {badge ? (
             <View style={[styles.badge, { backgroundColor: badge.bg }]}>
               <Text style={[styles.badgeLabel, { color: badge.text }]}>
-                {status === 'accepted'
+                {['ACCEPTED', 'accepted', 'APPROVED', 'approved'].includes(status || '')
                   ? t('applicationAccepted')
-                  : status === 'rejected'
+                  : status === 'REJECTED' || status === 'rejected'
                     ? t('applicationRejected')
                     : t('applicationPending')}
               </Text>
@@ -89,13 +94,35 @@ export const JobCard = ({ job, t, isSaved, isApplied, onApply, onSave, status }:
           ) : null}
         </View>
 
-        {onApply ? (
+        {showMap ? (
+          <View style={[styles.actions, { flexDirection: 'row', gap: 10 }]}>
+            <View style={{flex: 1}}>
+              <PrimaryButton 
+                title={t('navigateMap') || 'Open Maps'} 
+                onPress={() => Linking.openURL(`https://maps.google.com/?q=${encodeURIComponent(job.location)}`)} 
+                variant="outline"
+              />
+            </View>
+            {onChat && (
+              <View style={{flex: 1}}>
+                <PrimaryButton 
+                  title={t('chat') || 'Chat'} 
+                  onPress={onChat} 
+                />
+              </View>
+            )}
+          </View>
+        ) : onApply ? (
           <View style={styles.actions}>
-            <PrimaryButton
-              title={isApplied ? t('applied') : t('apply')}
-              onPress={onApply}
-              disabled={isApplied}
-            />
+            <View style={{flexDirection: 'row', gap: 10}}>
+              <View style={{flex: 1}}>
+                <PrimaryButton
+                  title={isApplied ? t('applied') : isApplying ? t('loading') : t('apply')}
+                  onPress={onApply}
+                  disabled={isApplied || isApplying}
+                />
+              </View>
+            </View>
             {onSave ? (
               <PrimaryButton
                 title={isSaved ? t('saved') : t('save')}

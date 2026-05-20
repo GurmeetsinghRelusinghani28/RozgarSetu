@@ -13,7 +13,9 @@ export const LanguageSelectionScreen = ({ navigation }: Props) => {
   const { language, setLanguage, t } = useLanguage();
 
   const handleSelect = async (code: (typeof languages)[number]['code']) => {
+    console.log(`🌍 Selecting language: ${code}`);
     await setLanguage(code);
+    console.log(`✅ Language set to: ${code}, navigating to Login`);
     navigation.navigate('Login');
   };
 

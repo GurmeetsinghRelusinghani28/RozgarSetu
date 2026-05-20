@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema(
       max: 5,
       default: 0
     },
+    /* NEW CODE ADDED: Tracking number of reviews */
+    reviewCount: {
+      type: Number,
+      default: 0
+    },
     isVerified: {
       type: Boolean,
       default: false

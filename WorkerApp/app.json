@@ -19,7 +19,9 @@
       "adaptiveIcon": {
         "backgroundColor": "#0B5D51"
       },
-      "edgeToEdgeEnabled": true
+      "usesCleartextTraffic": true,
+      "edgeToEdgeEnabled": true,
+      "package": "com.anonymous.rozgarsetuworker"
     }
   }
 }

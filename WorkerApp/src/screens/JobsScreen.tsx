@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { api } from '../api/client';
@@ -13,6 +13,7 @@ import { getErrorMessage, getProjectId, normalizeProjects } from '../utils/worke
 const skillFilters = ['allSkills', 'mason', 'carpenter', 'electrician', 'painter', 'helper', 'plumber'];
 
 export const JobsScreen = () => {
+  const navigation = useNavigation<any>();
   const { token } = useAuth();
   const { t } = useLanguage();
   const [searchText, setSearchText] = useState('');
@@ -21,6 +22,7 @@ export const JobsScreen = () => {
   const [savedJobs, setSavedJobs] = useState<any[]>([]);
   const [appliedJobs, setAppliedJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isApplying, setIsApplying] = useState<string | null>(null);
 
   const fetchJobs = useCallback(async () => {
     try {
@@ -68,15 +70,21 @@ export const JobsScreen = () => {
       return;
     }
 
+    setIsApplying(projectId);
+
     try {
       await api.post(
-        `/worker/dashboard/apply/${projectId}`,
+        `/projects/${projectId}/apply`,
         {},
         { headers: { Authorization: `Bearer ${token}` } },
       );
+      // Re-fetch to update isApplied/isRejected visual state
       fetchWorkerDashboard();
+      fetchJobs();
     } catch (error: any) {
       Alert.alert(t('error'), getErrorMessage(error, t('failedToLoad')));
+    } finally {
+      setIsApplying(null);
     }
   };
 
@@ -94,6 +102,12 @@ export const JobsScreen = () => {
       Alert.alert(t('error'), getErrorMessage(error, t('failedToLoad')));
     }
   };
+
+  const appliedJobsMap = useMemo(() => {
+    const map = new Map<string, any>();
+    appliedJobs.forEach((job) => map.set(job.id, job));
+    return map;
+  }, [appliedJobs]);
 
   const savedIds = useMemo(() => new Set(savedJobs.map((job) => getProjectId(job))), [savedJobs]);
   const appliedIds = useMemo(() => new Set(appliedJobs.map((job) => getProjectId(job))), [appliedJobs]);
@@ -132,17 +146,31 @@ export const JobsScreen = () => {
       ) : jobs.length === 0 ? (
         <Text style={styles.infoText}>{t('noJobsFound')}</Text>
       ) : (
-        jobs.map((job) => (
-          <JobCard
-            key={job.id}
-            job={job}
-            t={t}
-            isSaved={savedIds.has(job.id)}
-            isApplied={appliedIds.has(job.id)}
-            onSave={() => toggleSave(job.id)}
-            onApply={() => applyToJob(job.id)}
-          />
-        ))
+        jobs.map((job) => {
+          const appliedJob = appliedJobsMap.get(job.id);
+          const status = appliedJob?.applicationStatus?.toLowerCase();
+          const isAccepted = ['accepted', 'approved'].includes(status || '');
+
+          return (
+            <JobCard
+              key={job.id}
+              job={job}
+              t={t}
+              isSaved={savedIds.has(job.id)}
+              isApplied={appliedIds.has(job.id)}
+              isApplying={isApplying === job.id}
+              onSave={() => toggleSave(job.id)}
+              onApply={() => applyToJob(job.id)}
+              status={status}
+              showMap={isAccepted}
+              onChat={isAccepted ? () => navigation.navigate('Chat', { 
+                jobId: job.id, 
+                contractorId: job.raw?.contractorId?._id || job.raw?.contractorId, 
+                projectName: job.title 
+              }) : undefined}
+            />
+          );
+        })
       )}
     </ScrollView>
   );

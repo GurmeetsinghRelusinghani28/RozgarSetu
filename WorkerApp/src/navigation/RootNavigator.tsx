@@ -9,6 +9,8 @@ import { LoginScreen } from '../screens/LoginScreen';
 import { ProfileSetupScreen } from '../screens/ProfileSetupScreen';
 import { SkillTipsScreen } from '../screens/SkillTipsScreen';
 import { EarningsScreen } from '../screens/EarningsScreen';
+import { ChatScreen } from '../screens/ChatScreen';
+import { HelpScreen } from '../screens/HelpScreen';
 
 export type RootStackParamList = {
   Splash: undefined;
@@ -18,6 +20,8 @@ export type RootStackParamList = {
   WorkerTabs: undefined;
   SkillTips: undefined;
   Earnings: undefined;
+  Chat: { jobId: string; contractorId: string; projectName: string };
+  Help: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -53,6 +57,8 @@ export const RootNavigator = () => {
           <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
           <Stack.Screen name="SkillTips" component={SkillTipsScreen} />
           <Stack.Screen name="Earnings" component={EarningsScreen} />
+          <Stack.Screen name="Chat" component={ChatScreen} />
+          <Stack.Screen name="Help" component={HelpScreen} />
         </>
       )}
     </Stack.Navigator>

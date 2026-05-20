@@ -125,7 +125,7 @@ export const DashboardScreen = () => {
 
       <View style={styles.statsRow}>
         <StatCard label={t('jobsApplied')} value={myJobs.length} />
-        <StatCard label={t('activeJobs')} value={myJobs.filter((job) => job.applicationStatus === 'accepted').length} />
+        <StatCard label={t('activeJobs')} value={myJobs.filter((job) => ['accepted', 'approved'].includes(job.applicationStatus?.toLowerCase() || '')).length} />
       </View>
 
       <View style={styles.quickRow}>
@@ -201,7 +201,9 @@ export const DashboardScreen = () => {
             isApplied={appliedIds.has(job.id)}
             onSave={() => toggleSave(job.id)}
             onApply={() => applyToJob(job.id)}
-            status={job.applicationStatus}
+            status={job.applicationStatus?.toLowerCase()}
+            showMap={['accepted', 'approved'].includes(job.applicationStatus?.toLowerCase() || '')}
+            onChat={['accepted', 'approved'].includes(job.applicationStatus?.toLowerCase() || '') ? () => navigation.navigate('Chat', { jobId: job.id, contractorId: job.raw?.contractorId?._id || job.raw?.contractorId || job.contractorName, projectName: job.title }) : undefined}
           />
         ))
       )}

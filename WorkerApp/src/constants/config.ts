@@ -14,6 +14,6 @@ const fallbackHost =
 
 const apiHost = envApiHost ?? fallbackHost;
 
-export const API_BASE_URL = envApiBaseUrl ?? `http://${apiHost}:5000/api`;
+export const API_BASE_URL = envApiBaseUrl ?? `http://${apiHost}:5001/api`;
 
 export const SUPPORT_PHONE = '+911800123456';

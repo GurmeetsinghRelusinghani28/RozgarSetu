@@ -77,7 +77,7 @@ export const LoginScreen = ({ navigation }: Props) => {
     console.log("MESSAGE:", error.message);
       const errorMsg = error.response?.data?.message || error.message || t('failedToLoad');
       Alert.alert(t('error'), errorMsg);
-      console.error('Send OTP error:', error);
+      console.warn('Send OTP error:', error);
     } finally {
       setLoading(false);
     }
@@ -107,7 +107,7 @@ export const LoginScreen = ({ navigation }: Props) => {
     } catch (error: any) {
       const errorMsg = error.response?.data?.message || error.message || t('failedToLoad');
       Alert.alert(t('error'), errorMsg);
-      console.error('Verify OTP error:', error);
+      console.warn('Verify OTP error:', error);
     } finally {
       setLoading(false);
     }
