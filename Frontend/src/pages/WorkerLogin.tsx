@@ -1,0 +1,352 @@
+// import { useState } from 'react';
+// import { useNavigate } from 'react-router-dom';
+// import { useLanguage } from '@/contexts/LanguageContext';
+// import { Phone, ArrowLeft, User } from 'lucide-react';
+// import { Button } from '@/components/ui/button';
+// import { Input } from '@/components/ui/input';
+// import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp';
+
+// const WorkerLogin = () => {
+//   const navigate = useNavigate();
+//   const { t } = useLanguage();
+//   const [step, setStep] = useState<'name' | 'phone' | 'otp'>('name');
+//   const [name, setName] = useState('');
+//   const [phone, setPhone] = useState('');
+
+//   const handleSendOtp = () => {
+//     if (phone.length === 10) setStep('otp');
+//   };
+
+//   const handleVerify = () => {
+//     navigate('/worker-profile');
+//   };
+
+//   const handleBack = () => {
+//     if (step === 'otp') setStep('phone');
+//     else if (step === 'phone') setStep('name');
+//     else navigate('/user-type');
+//   };
+
+//   return (
+//     <div className="flex min-h-screen flex-col bg-background p-6">
+//       <button onClick={handleBack} className="mb-6 flex items-center gap-2 text-lg text-primary">
+//         <ArrowLeft className="h-6 w-6" /> {t('back')}
+//       </button>
+
+//       <div className="mt-8 flex flex-col items-center">
+//         <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+//           {step === 'name' ? <User className="h-10 w-10 text-primary" /> : <Phone className="h-10 w-10 text-primary" />}
+//         </div>
+//         <h1 className="mb-2 text-2xl font-bold text-foreground">{t('worker')}</h1>
+
+//         {step === 'name' ? (
+//           <div className="mt-8 w-full max-w-sm">
+//             <label className="mb-3 block text-lg font-medium text-foreground">{t('yourName')}</label>
+//             <Input
+//               type="text"
+//               value={name}
+//               onChange={(e) => setName(e.target.value)}
+//               placeholder={t('enterName')}
+//               className="h-14 rounded-xl text-lg"
+//             />
+//             <Button onClick={() => setStep('phone')} disabled={!name.trim()} className="mt-6 h-14 w-full rounded-2xl text-xl font-bold" size="lg">
+//               {t('next')}
+//             </Button>
+//           </div>
+//         ) : step === 'phone' ? (
+//           <div className="mt-8 w-full max-w-sm">
+//             <p className="mb-4 text-center text-lg text-muted-foreground">{t('hello')}, {name} 👋</p>
+//             <label className="mb-3 block text-lg font-medium text-foreground">{t('phoneNumber')}</label>
+//             <div className="flex items-center gap-2">
+//               <span className="rounded-xl border border-input bg-muted px-4 py-3 text-lg font-bold">+91</span>
+//               <Input
+//                 type="tel"
+//                 maxLength={10}
+//                 value={phone}
+//                 onChange={(e) => setPhone(e.target.value.replace(/\D/g, ''))}
+//                 placeholder={t('enterPhone')}
+//                 className="h-14 rounded-xl text-lg"
+//               />
+//             </div>
+//             <Button onClick={handleSendOtp} disabled={phone.length !== 10} className="mt-6 h-14 w-full rounded-2xl text-xl font-bold" size="lg">
+//               {t('sendOtp')}
+//             </Button>
+//           </div>
+//         ) : (
+//           <div className="mt-8 flex w-full max-w-sm flex-col items-center">
+//             <label className="mb-4 block text-lg font-medium text-foreground">{t('enterOtp')}</label>
+//             <InputOTP maxLength={4} onComplete={handleVerify}>
+//               <InputOTPGroup>
+//                 <InputOTPSlot index={0} className="h-16 w-16 rounded-xl text-2xl" />
+//                 <InputOTPSlot index={1} className="h-16 w-16 rounded-xl text-2xl" />
+//                 <InputOTPSlot index={2} className="h-16 w-16 rounded-xl text-2xl" />
+//                 <InputOTPSlot index={3} className="h-16 w-16 rounded-xl text-2xl" />
+//               </InputOTPGroup>
+//             </InputOTP>
+//             <Button onClick={handleVerify} className="mt-6 h-14 w-full rounded-2xl text-xl font-bold" size="lg">
+//               {t('verifyOtp')}
+//             </Button>
+//           </div>
+//         )}
+//       </div>
+//     </div>
+//   );
+// };
+
+// export default WorkerLogin;
+
+
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import axios from 'axios'
+import { useLanguage } from '@/contexts/LanguageContext'
+import { Phone, ArrowLeft, User } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { InputOTP, InputOTPGroup, InputOTPSlot } from '@/components/ui/input-otp'
+
+const WorkerLogin = () => {
+
+  const navigate = useNavigate()
+  const { t } = useLanguage()
+
+  const [step, setStep] = useState<'name' | 'phone' | 'otp'>('name')
+
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [otp, setOtp] = useState('')
+  const [loading, setLoading] = useState(false)
+
+  const API = "http://localhost:5001/api/auth"
+
+  // SEND OTP
+  const handleSendOtp = async () => {
+
+    if (phone.length !== 10) {
+      alert("Enter valid phone number")
+      return
+    }
+
+    try {
+
+      setLoading(true)
+
+      const res = await axios.post(`${API}/send-otp`, {
+        name,
+        phone
+      })
+
+      if (res.data.success) {
+        alert("OTP sent successfully")
+        setStep('otp')
+      }
+
+    } catch (err: any) {
+
+      alert(
+        err.response?.data?.message ||
+        "Failed to send OTP"
+      )
+
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // VERIFY OTP
+  const handleVerify = async (enteredOtp?: string) => {
+
+    const finalOtp = enteredOtp || otp
+
+    if (finalOtp.length !== 6) {
+      alert("Enter 6 digit OTP")
+      return
+    }
+
+    try {
+
+      setLoading(true)
+
+      const res = await axios.post(`${API}/verify-otp`, {
+        name,
+        phone,
+        otp: finalOtp,
+        role: "worker"
+      })
+
+      if (res.data.success) {
+
+        // save token
+        localStorage.setItem("token", res.data.token)
+        localStorage.setItem("userType", "worker")
+
+        navigate('/worker-profile')
+      }
+
+    } catch (err: any) {
+
+      alert(
+        err.response?.data?.message ||
+        "OTP verification failed"
+      )
+
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleBack = () => {
+
+    if (step === 'otp') setStep('phone')
+    else if (step === 'phone') setStep('name')
+    else navigate('/user-type')
+
+  }
+
+  return (
+
+    <div className="flex min-h-screen flex-col bg-background p-6">
+
+      <button
+        onClick={handleBack}
+        className="mb-6 flex items-center gap-2 text-lg text-primary"
+      >
+        <ArrowLeft className="h-6 w-6" /> {t('back')}
+      </button>
+
+      <div className="mt-8 flex flex-col items-center">
+
+        <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-primary/10">
+          {step === 'name'
+            ? <User className="h-10 w-10 text-primary" />
+            : <Phone className="h-10 w-10 text-primary" />}
+        </div>
+
+        <h1 className="mb-2 text-2xl font-bold">
+          {t('worker')}
+        </h1>
+
+        {/* STEP 1 NAME */}
+
+        {step === 'name' && (
+
+          <div className="mt-8 w-full max-w-sm">
+
+            <label className="mb-3 block text-lg font-medium">
+              {t('yourName')}
+            </label>
+
+            <Input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={t('enterName')}
+              className="h-14 rounded-xl text-lg"
+            />
+
+            <Button
+              onClick={() => setStep('phone')}
+              disabled={!name.trim()}
+              className="mt-6 h-14 w-full rounded-2xl text-xl font-bold"
+              size="lg"
+            >
+              {t('next')}
+            </Button>
+
+          </div>
+        )}
+
+        {/* STEP 2 PHONE */}
+
+        {step === 'phone' && (
+
+          <div className="mt-8 w-full max-w-sm">
+
+            <p className="mb-4 text-center text-lg text-muted-foreground">
+              {t('hello')}, {name} 👋
+            </p>
+
+            <label className="mb-3 block text-lg font-medium">
+              {t('phoneNumber')}
+            </label>
+
+            <div className="flex items-center gap-2">
+
+              <span className="rounded-xl border border-input bg-muted px-4 py-3 text-lg font-bold">
+                +91
+              </span>
+
+              <Input
+                type="tel"
+                maxLength={10}
+                value={phone}
+                onChange={(e) =>
+                  setPhone(e.target.value.replace(/\D/g, ''))
+                }
+                placeholder={t('enterPhone')}
+                className="h-14 rounded-xl text-lg"
+              />
+
+            </div>
+
+            <Button
+              onClick={handleSendOtp}
+              disabled={phone.length !== 10 || loading}
+              className="mt-6 h-14 w-full rounded-2xl text-xl font-bold"
+              size="lg"
+            >
+              {loading ? "Sending..." : t('sendOtp')}
+            </Button>
+
+          </div>
+        )}
+
+        {/* STEP 3 OTP */}
+
+        {step === 'otp' && (
+
+          <div className="mt-8 flex w-full max-w-sm flex-col items-center">
+
+            <label className="mb-4 block text-lg font-medium">
+              {t('enterOtp')}
+            </label>
+
+            <InputOTP
+              maxLength={6}
+              value={otp}
+              onChange={(val) => setOtp(val)}
+              onComplete={(val) => handleVerify(val)}
+            >
+
+              <InputOTPGroup>
+
+                <InputOTPSlot index={0} className="h-16 w-16 text-2xl" />
+                <InputOTPSlot index={1} className="h-16 w-16 text-2xl" />
+                <InputOTPSlot index={2} className="h-16 w-16 text-2xl" />
+                <InputOTPSlot index={3} className="h-16 w-16 text-2xl" />
+                <InputOTPSlot index={4} className="h-16 w-16 text-2xl" />
+                <InputOTPSlot index={5} className="h-16 w-16 text-2xl" />
+
+              </InputOTPGroup>
+
+            </InputOTP>
+
+            <Button
+              onClick={() => handleVerify()}
+              disabled={otp.length !== 6 || loading}
+              className="mt-6 h-14 w-full rounded-2xl text-xl font-bold"
+              size="lg"
+            >
+              {loading ? "Verifying..." : t('verifyOtp')}
+            </Button>
+
+          </div>
+        )}
+
+      </div>
+
+    </div>
+  )
+}
+
+export default WorkerLogin
