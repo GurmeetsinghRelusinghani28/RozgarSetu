@@ -12,6 +12,7 @@ import WorkerProfile from "./pages/WorkerProfile";
 import WorkerDashboard from "./pages/WorkerDashboard";
 import WorkerProfileView from "./pages/WorkerProfileView";
 import JobListing from "./pages/JobListing";
+import RozgarMitra from "./pages/RozgarMitra";
 import ContractorLogin from "./pages/ContractorLogin";
 import ContractorDashboard from "./pages/ContractorDashboard";
 import ContractorReview from "./pages/ContractorReview";
@@ -47,6 +48,7 @@ const App = () => (
             <Route path="/worker-profile-view" element={<WorkerProfileView />} />
             <Route path="/worker-profile/:workerId" element={<WorkerProfileView />} />
             <Route path="/jobs" element={<JobListing />} />
+            <Route path="/rozgar-mitra" element={<RozgarMitra />} />
             <Route path="/contractor-login" element={<ContractorLogin />} />
             <Route path="/contractor-dashboard" element={<ContractorDashboard />} />
             <Route path="/contractor-projects" element={<ContractorProjects />} />

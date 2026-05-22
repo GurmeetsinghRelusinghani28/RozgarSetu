@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../constants/theme';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { JobsScreen } from '../screens/JobsScreen';
+import { RozgarMitraScreen } from '../screens/RozgarMitraScreen';
 import { ProfileScreen } from '../screens/ProfileScreen';
 import { HelpScreen } from '../screens/HelpScreen';
 import { useLanguage } from '../contexts/LanguageContext';
@@ -30,6 +31,7 @@ export const WorkerTabs = () => {
           const iconMap: Record<string, keyof typeof Ionicons.glyphMap> = {
             Dashboard: 'home-outline',
             Jobs: 'briefcase-outline',
+            RozgarMitra: 'chatbubbles-outline',
             Profile: 'person-outline',
             Help: 'help-circle-outline',
           };
@@ -40,6 +42,7 @@ export const WorkerTabs = () => {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: t('home') }} />
       <Tab.Screen name="Jobs" component={JobsScreen} options={{ title: t('jobs') }} />
+      <Tab.Screen name="RozgarMitra" component={RozgarMitraScreen} options={{ title: 'Mitra' }} />
       <Tab.Screen name="Profile" component={ProfileScreen} options={{ title: t('profile') }} />
       <Tab.Screen name="Help" component={HelpScreen} options={{ title: t('help') }} />
     </Tab.Navigator>

@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useLanguage } from '@/contexts/LanguageContext'
-import { ArrowLeft, Blocks, Hammer, Zap, Paintbrush, HandHelping, Wrench, Camera, X, MapPin } from 'lucide-react'
+import { ArrowLeft, Blocks, Hammer, Zap, Paintbrush, HandHelping, Wrench, Camera, X, MapPin, Mic, MicOff, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
@@ -33,6 +33,8 @@ const CreateProject = () => {
   const navigate = useNavigate()
   const { t } = useLanguage()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const audioChunksRef = useRef<Blob[]>([])
 
   const [step, setStep] = useState(0)
   const [loading, setLoading] = useState(false)
@@ -52,6 +54,10 @@ const CreateProject = () => {
   const [images, setImages] = useState<string[]>([])
   const [imagesLoading, setImagesLoading] = useState(false)
   const [geoLoading, setGeoLoading] = useState(false)
+  const [aiText, setAiText] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
+  const [isRecording, setIsRecording] = useState(false)
 
   const fetchCurrentLocation = () => {
     if (!navigator.geolocation) {
@@ -142,6 +148,128 @@ const CreateProject = () => {
     setImages((prev) => prev.filter((_, i) => i !== idx))
   }
 
+  const applyParsedProject = (project: any) => {
+    if (project.projectTitle) setProjectTitle(project.projectTitle)
+    if (project.location) setLocation(project.location)
+    if (project.startDate) setStartDate(project.startDate)
+    if (project.skillType) {
+      setSkillType(project.skillType)
+      setSubSkill(project.subSkill || '')
+    }
+    if (project.workerCount) setWorkerCount(Number(project.workerCount))
+    if (project.wage) setWage(String(project.wage))
+    setFood(Boolean(project.food))
+    setAccommodation(Boolean(project.accommodation))
+    setInsurance(Boolean(project.insurance))
+    setPf(Boolean(project.pf))
+    if (project.description) setDescription(project.description)
+  }
+
+  const parseProjectText = async () => {
+    if (!aiText.trim()) return
+
+    try {
+      setAiLoading(true)
+      setAiError('')
+      const token = localStorage.getItem("token")
+      const res = await axios.post(
+        "http://localhost:5001/api/ai/parse-project-text",
+        { text: aiText.trim() },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      )
+
+      if (res.data.success && res.data.project) {
+        applyParsedProject(res.data.project)
+        setAiText('')
+      } else {
+        setAiError(res.data.message || 'Failed to analyze job details.')
+      }
+    } catch (error: any) {
+      setAiError(error.response?.data?.message || 'Failed to analyze job details.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const uploadProjectAudio = async (audioBlob: Blob) => {
+    try {
+      setAiLoading(true)
+      setAiError('')
+      const token = localStorage.getItem("token")
+      const formData = new FormData()
+      const extension = audioBlob.type.includes('mp4') ? 'mp4' : 'webm'
+      formData.append('audio', audioBlob, `project-voice.${extension}`)
+
+      const res = await axios.post(
+        "http://localhost:5001/api/ai/parse-project-audio",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'multipart/form-data',
+          }
+        }
+      )
+
+      if (res.data.success && res.data.project) {
+        applyParsedProject(res.data.project)
+        if (res.data.transcript) setAiText(res.data.transcript)
+      } else {
+        setAiError(res.data.message || 'Failed to analyze voice.')
+      }
+    } catch (error: any) {
+      setAiError(error.response?.data?.message || 'Failed to process voice.')
+    } finally {
+      setAiLoading(false)
+    }
+  }
+
+  const startRecording = async () => {
+    try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setAiError('Voice recording is not supported in this browser.')
+        return
+      }
+
+      setAiError('')
+      audioChunksRef.current = []
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : ''
+      const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined)
+
+      recorder.ondataavailable = (event) => {
+        if (event.data.size > 0) audioChunksRef.current.push(event.data)
+      }
+
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop())
+        const audioBlob = new Blob(audioChunksRef.current, {
+          type: recorder.mimeType || 'audio/webm',
+        })
+        await uploadProjectAudio(audioBlob)
+      }
+
+      mediaRecorderRef.current = recorder
+      recorder.start()
+      setIsRecording(true)
+    } catch (error) {
+      console.error('Failed to start project recording', error)
+      setAiError('Failed to start voice recording.')
+    }
+  }
+
+  const stopRecording = () => {
+    const recorder = mediaRecorderRef.current
+    if (!recorder || recorder.state === 'inactive') return
+    recorder.stop()
+    setIsRecording(false)
+    mediaRecorderRef.current = null
+  }
+
   const canNext = () => {
     if (step === 0) return projectTitle && location && startDate
     if (step === 1) return skillType && wage
@@ -222,6 +350,45 @@ const CreateProject = () => {
         {/* Step 0: Project Details */}
         {step === 0 && (
           <div className="space-y-6">
+            <Card className="rounded-xl border-accent/30">
+              <CardContent className="space-y-4 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-accent" />
+                    <span className="font-semibold">AI Job Assistant</span>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={isRecording ? "destructive" : "outline"}
+                    onClick={isRecording ? stopRecording : startRecording}
+                    disabled={aiLoading}
+                    className="h-10 rounded-xl"
+                  >
+                    {isRecording ? <MicOff className="mr-2 h-4 w-4" /> : <Mic className="mr-2 h-4 w-4" />}
+                    {isRecording ? 'Stop' : 'Record'}
+                  </Button>
+                </div>
+
+                <Textarea
+                  value={aiText}
+                  onChange={(e) => setAiText(e.target.value)}
+                  placeholder='Example: "अकोला में कल से पेंटिंग काम के लिए 3 पेंटर चाहिए, रोज 700 रुपये, खाना और रहने की सुविधा है"'
+                  className="min-h-[90px] rounded-xl text-base"
+                />
+
+                {aiError && <p className="text-sm font-medium text-destructive">{aiError}</p>}
+
+                <Button
+                  type="button"
+                  onClick={parseProjectText}
+                  disabled={!aiText.trim() || aiLoading}
+                  className="h-11 w-full rounded-xl bg-accent font-bold text-accent-foreground hover:bg-accent/90"
+                >
+                  {aiLoading ? 'Analyzing...' : 'Auto-fill Job Details'}
+                </Button>
+              </CardContent>
+            </Card>
+
             <div>
               <label className="mb-3 block text-xl font-medium">{t('projectTitle')}</label>
               <Input value={projectTitle} onChange={(e) => setProjectTitle(e.target.value)} placeholder={t('enterProjectName')} className="h-14 rounded-xl text-lg" />

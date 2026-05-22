@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { Home, Briefcase, User, HelpCircle, FolderOpen, Users } from 'lucide-react';
+import { Home, Briefcase, User, HelpCircle, FolderOpen, Users, Bot } from 'lucide-react';
 
 interface BottomNavProps {
   type: 'worker' | 'contractor';
@@ -14,6 +14,7 @@ const BottomNav = ({ type, active }: BottomNavProps) => {
   const workerTabs = [
     { key: 'home', icon: Home, label: t('home'), path: '/worker-dashboard' },
     { key: 'jobs', icon: Briefcase, label: t('jobs'), path: '/jobs' },
+    { key: 'mitra', icon: Bot, label: 'Mitra', path: '/rozgar-mitra' },
     { key: 'profile', icon: User, label: t('profile'), path: '/worker-profile-view' },
     { key: 'help', icon: HelpCircle, label: t('help'), path: '/help-center' },
   ];

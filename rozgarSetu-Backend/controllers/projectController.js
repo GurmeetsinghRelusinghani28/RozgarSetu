@@ -9,6 +9,131 @@ const normalizeProjectStatus = (value) => {
   return status === "CLOSED" ? "FILLED" : status;
 };
 
+const normalizeText = (value = "") =>
+  String(value)
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+const getAverageWorkerRating = (workerProfile, user) => {
+  const profileReviews = workerProfile?.reviews || [];
+  if (profileReviews.length) {
+    const total = profileReviews.reduce((sum, review) => sum + (Number(review.rating) || 0), 0);
+    return total / profileReviews.length;
+  }
+  return Number(user?.rating) || 0;
+};
+
+const getSkillMatch = (project, workerProfile) => {
+  const requiredSkill = normalizeText(project.skillType);
+  const requiredSubSkill = normalizeText(project.subSkill);
+  const workerSkills = (workerProfile?.skills || []).map(normalizeText);
+
+  if (!requiredSkill) return { score: 20, matchedSkills: [] };
+
+  const matchedSkills = workerSkills.filter((skill) => {
+    return (
+      skill === requiredSkill ||
+      skill.includes(requiredSkill) ||
+      requiredSkill.includes(skill) ||
+      (requiredSubSkill && (skill === requiredSubSkill || skill.includes(requiredSubSkill)))
+    );
+  });
+
+  if (matchedSkills.length) {
+    return { score: 40, matchedSkills };
+  }
+
+  return { score: 0, matchedSkills: [] };
+};
+
+const estimateDistanceKm = (projectLocation, workerLocation) => {
+  const projectCity = normalizeText(projectLocation);
+  const workerCity = normalizeText(workerLocation);
+
+  if (!projectCity || !workerCity) return null;
+  if (projectCity === workerCity) return 3;
+  if (projectCity.includes(workerCity) || workerCity.includes(projectCity)) return 8;
+
+  const projectParts = new Set(projectCity.split(" ").filter(Boolean));
+  const hasSharedPlaceToken = workerCity
+    .split(" ")
+    .some((part) => part.length > 3 && projectParts.has(part));
+
+  return hasSharedPlaceToken ? 12 : 30;
+};
+
+const getProximityScore = (distanceKm) => {
+  if (distanceKm === null) return 5;
+  if (distanceKm <= 3) return 15;
+  if (distanceKm <= 10) return 12;
+  if (distanceKm <= 25) return 8;
+  return 3;
+};
+
+const buildFitSummary = ({ project, workerProfile, rating, experience, distanceKm, matchedSkills, suitabilityScore }) => {
+  const summaries = [];
+  const skillLabel = project.skillType || "required skill";
+
+  if (matchedSkills.length) {
+    summaries.push(`Perfect skill match for ${skillLabel} work`);
+  } else {
+    summaries.push(`Limited direct match for ${skillLabel} requirement`);
+  }
+
+  if (rating >= 4.5) {
+    summaries.push(`Highly rated worker with ${rating.toFixed(1)} stars`);
+  } else if (experience >= 3) {
+    summaries.push(`${experience} years of relevant work experience`);
+  } else if (distanceKm !== null && distanceKm <= 10) {
+    summaries.push(`Lives within ${distanceKm}km of the project location`);
+  } else if (suitabilityScore >= 75) {
+    summaries.push("Strong overall fit for this project");
+  } else {
+    summaries.push("May need contractor review before selection");
+  }
+
+  if (
+    summaries.length < 2 &&
+    distanceKm !== null &&
+    distanceKm <= 10 &&
+    workerProfile?.city
+  ) {
+    summaries.push(`Nearby candidate from ${workerProfile.city}`);
+  }
+
+  return summaries.slice(0, 2);
+};
+
+const rankApplicantForProject = (project, applicant, workerProfile) => {
+  const user = applicant.workerId;
+  const { score: skillScore, matchedSkills } = getSkillMatch(project, workerProfile);
+  const rating = getAverageWorkerRating(workerProfile, user);
+  const ratingScore = Math.min(Math.max(rating, 0), 5) * 5;
+  const experience = Number(workerProfile?.experience) || 0;
+  const experienceScore = Math.min(experience, 5) * 4;
+  const workerLocation = workerProfile?.city || user?.location || "";
+  const distanceKm = estimateDistanceKm(project.location, workerLocation);
+  const proximityScore = getProximityScore(distanceKm);
+  const suitabilityScore = Math.round(skillScore + ratingScore + experienceScore + proximityScore);
+
+  return {
+    suitabilityScore: Math.max(0, Math.min(100, suitabilityScore)),
+    distanceKm,
+    averageRating: Number(rating.toFixed(1)),
+    aiSummary: buildFitSummary({
+      project,
+      workerProfile,
+      rating,
+      experience,
+      distanceKm,
+      matchedSkills,
+      suitabilityScore,
+    }),
+  };
+};
+
 /* CREATE PROJECT */
 const createProject = async (req,res)=>{
   try{
@@ -183,20 +308,24 @@ const getProjectApplicants = async (req, res) => {
         select: 'name phone location rating'
       });
 
-    // Formatting it nicely to emulate old `workerProfile` logic
     const applicantsWithDetails = await Promise.all(
       applications.map(async (app) => {
         const workerProfile = await WorkerProfile.findOne({ userId: app.workerId._id }).lean();
+        const fitAnalysis = rankApplicantForProject(project, app, workerProfile);
+
         return {
           _id: app._id,
           workerId: app.workerId._id,
           appliedAt: app.createdAt,
           status: app.status,
           user: app.workerId, // populated user details (name, rating, phone)
-          workerProfile
+          workerProfile,
+          ...fitAnalysis,
         };
       })
     );
+
+    applicantsWithDetails.sort((a, b) => b.suitabilityScore - a.suitabilityScore);
 
     res.json({ success: true, applicants: applicantsWithDetails });
   } catch (err) {

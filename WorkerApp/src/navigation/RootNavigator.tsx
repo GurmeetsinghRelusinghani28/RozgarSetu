@@ -7,6 +7,7 @@ import { SplashScreen } from '../screens/SplashScreen';
 import { LanguageSelectionScreen } from '../screens/LanguageSelectionScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { ProfileSetupScreen } from '../screens/ProfileSetupScreen';
+import { RozgarMitraScreen } from '../screens/RozgarMitraScreen';
 import { SkillTipsScreen } from '../screens/SkillTipsScreen';
 import { EarningsScreen } from '../screens/EarningsScreen';
 import { ChatScreen } from '../screens/ChatScreen';
@@ -18,6 +19,7 @@ export type RootStackParamList = {
   Login: undefined;
   ProfileSetup: undefined;
   WorkerTabs: undefined;
+  RozgarMitra: undefined;
   SkillTips: undefined;
   Earnings: undefined;
   Chat: { jobId: string; contractorId: string; projectName: string };
@@ -54,6 +56,7 @@ export const RootNavigator = () => {
       ) : (
         <>
           <Stack.Screen name="WorkerTabs" component={WorkerTabs} />
+          <Stack.Screen name="RozgarMitra" component={RozgarMitraScreen} />
           <Stack.Screen name="ProfileSetup" component={ProfileSetupScreen} />
           <Stack.Screen name="SkillTips" component={SkillTipsScreen} />
           <Stack.Screen name="Earnings" component={EarningsScreen} />

@@ -50,6 +50,7 @@ app.use("/api/worker", require("./routes/workerProfileRoutes"));
 // NEW ROUTES
 app.use("/api/chat", require("./routes/chatRoutes"));
 app.use("/api/ratings", require("./routes/ratingRoutes"));
+app.use("/api/ai", require("./routes/aiRoutes"));
 
 app.get("/", (req, res) => {
   res.send("RozgarSetu API Running (With Socket.io)");

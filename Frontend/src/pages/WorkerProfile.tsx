@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useLanguage } from '@/contexts/LanguageContext';
-import { ArrowLeft, Blocks, Hammer, Zap, Paintbrush, HandHelping, Wrench, Flame, Car } from 'lucide-react';
+import { ArrowLeft, Blocks, Hammer, Zap, Paintbrush, HandHelping, Wrench, Flame, Car, Mic, MicOff, Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
@@ -22,7 +22,7 @@ const API = "http://localhost:5001/api/worker";
 
 const WorkerProfile = () => {
   const navigate = useNavigate();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -31,6 +31,107 @@ const WorkerProfile = () => {
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // AI Voice Assistant States
+  const [voiceText, setVoiceText] = useState('');
+  const [isListening, setIsListening] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  const [showAiAssist, setShowAiAssist] = useState(false);
+
+  const startListening = () => {
+    setAiError(null);
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      setAiError("Speech recognition is not supported in this browser. Please type or paste your details below.");
+      return;
+    }
+
+    try {
+      const recognition = new SpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+
+      const langLocales: Record<string, string> = {
+        hi: 'hi-IN',
+        mr: 'mr-IN',
+        bn: 'bn-IN',
+        ta: 'ta-IN',
+        te: 'te-IN',
+        pa: 'pa-IN',
+        en: 'en-IN',
+      };
+
+      recognition.lang = langLocales[language] || 'hi-IN';
+
+      recognition.onstart = () => {
+        setIsListening(true);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+      };
+
+      recognition.onerror = (e: any) => {
+        console.error("Speech recognition error:", e);
+        setAiError("Failed to capture speech. Please try again.");
+        setIsListening(false);
+      };
+
+      recognition.onresult = (event: any) => {
+        const transcript = event.results[0][0].transcript;
+        setVoiceText(transcript);
+      };
+
+      recognition.start();
+    } catch (err: any) {
+      console.error(err);
+      setAiError("Failed to initiate voice recognition.");
+      setIsListening(false);
+    }
+  };
+
+  const handleAiParse = async () => {
+    if (!voiceText.trim()) return;
+
+    try {
+      setAiLoading(true);
+      setAiError(null);
+
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/user-type");
+        return;
+      }
+
+      const res = await axios.post(
+        "http://localhost:5001/api/ai/parse-profile-text",
+        { text: voiceText },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (res.data.success && res.data.profile) {
+        const profile = res.data.profile;
+        if (profile.name) setName(profile.name);
+        if (profile.skills) setSelectedSkills(profile.skills);
+        if (profile.experience) setExperience(profile.experience);
+        if (profile.city) setCity(profile.city);
+
+        alert("AI successfully filled in your details! Please review and click Done to complete.");
+        setShowAiAssist(false);
+        setVoiceText("");
+      } else {
+        setAiError(res.data.message || "Failed to process speech input.");
+      }
+    } catch (err: any) {
+      console.error(err);
+      setAiError(err.response?.data?.message || "Failed to reach AI parsing service.");
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const steps = [t('yourName'), t('selectSkills'), t('experience'), t('city')];
   const progress = ((step + 1) / steps.length) * 100;
@@ -140,6 +241,75 @@ const WorkerProfile = () => {
       <div className="flex flex-1 flex-col">
         {step === 0 && (
           <div>
+            {/* AI Assistant card */}
+            <div className="mb-6 rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-indigo-50 p-5 shadow-sm">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-indigo-600 animate-pulse" />
+                  <span className="font-bold text-indigo-900 text-lg">AI Voice Assistant</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAiAssist(!showAiAssist)}
+                  className="border-indigo-200 text-indigo-700 bg-white hover:bg-indigo-100"
+                >
+                  {showAiAssist ? "Hide" : "Try Voice Setup"}
+                </Button>
+              </div>
+
+              {showAiAssist && (
+                <div className="mt-4 space-y-4">
+                  <p className="text-sm text-indigo-700 leading-relaxed">
+                    Tell us about yourself in your native language (e.g. <em>"मेरा नाम राम है, मैं मुंबई में ३ साल से कारपेंटर का काम करता हूँ"</em>). The AI will fill in all details!
+                  </p>
+
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={isListening ? () => {} : startListening}
+                      className={`flex h-12 w-12 items-center justify-center rounded-full transition-all ${
+                        isListening
+                          ? "bg-red-500 text-white animate-pulse"
+                          : "bg-indigo-600 text-white hover:bg-indigo-700 active:scale-95"
+                      }`}
+                      disabled={aiLoading}
+                    >
+                      {isListening ? <MicOff className="h-5 w-5 animate-pulse" /> : <Mic className="h-5 w-5" />}
+                    </button>
+                    <span className="text-sm font-semibold text-indigo-800">
+                      {isListening ? "Listening... Speak now!" : "Click mic to speak"}
+                    </span>
+                  </div>
+
+                  <textarea
+                    value={voiceText}
+                    onChange={(e) => setVoiceText(e.target.value)}
+                    placeholder="Your speech transcript will show here. You can also type or edit this text..."
+                    className="w-full h-24 rounded-xl border border-indigo-200 bg-white p-3 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    disabled={aiLoading}
+                  />
+
+                  {aiError && <p className="text-sm font-medium text-destructive">{aiError}</p>}
+
+                  <Button
+                    onClick={handleAiParse}
+                    disabled={!voiceText.trim() || aiLoading || isListening}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white h-12 text-base font-semibold"
+                  >
+                    {aiLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        AI is analyzing...
+                      </>
+                    ) : (
+                      "Auto-fill Profile Details"
+                    )}
+                  </Button>
+                </div>
+              )}
+            </div>
+
             <label className="mb-3 block text-xl font-medium">{t('yourName')}</label>
             <Input value={name} onChange={(e) => setName(e.target.value)} placeholder={t('enterName')} className="h-14 rounded-xl text-lg" />
           </div>
