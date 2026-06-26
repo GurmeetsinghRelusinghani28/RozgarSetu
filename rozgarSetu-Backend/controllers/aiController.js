@@ -374,7 +374,13 @@ const transcribeAudioWithGroq = async (file) => {
   });
 
   if (!response.ok) {
-    throw new Error(`Groq transcription API error: ${await parseGroqError(response)}`);
+    const errorText = await parseGroqError(response);
+    if (response.status === 401 || response.status === 403) {
+      throw new Error(
+        `Groq transcription authentication failed: ${errorText}. Please verify GROQ_API_KEY.`,
+      );
+    }
+    throw new Error(`Groq transcription API error: ${errorText}`);
   }
 
   const data = await response.json();
