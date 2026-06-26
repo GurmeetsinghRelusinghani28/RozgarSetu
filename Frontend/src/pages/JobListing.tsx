@@ -56,7 +56,7 @@ const JobListing = () => {
       if (selectedSkill !== 'allSkills') params.skill = selectedSkill;
       if (searchText.trim()) params.search = searchText.trim();
 
-      const res = await axios.get('http://localhost:5001/api/projects', { params });
+      const res = await axios.get('https://rozgarsetu-niht.onrender.com/api/projects', { params });
 
       if (res.data?.success) {
         setJobs(res.data.projects || []);
@@ -75,7 +75,7 @@ const JobListing = () => {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      const res = await axios.get('http://localhost:5001/api/worker/dashboard', {
+      const res = await axios.get('https://rozgarsetu-niht.onrender.com/api/worker/dashboard', {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -97,7 +97,7 @@ const JobListing = () => {
       }
 
       const res = await axios.post(
-        `http://localhost:5001/api/worker/dashboard/apply/${projectId}`,
+        `https://rozgarsetu-niht.onrender.com/api/worker/dashboard/apply/${projectId}`,
         {},
         {
           headers: { Authorization: `Bearer ${token}` },

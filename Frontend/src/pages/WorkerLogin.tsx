@@ -117,7 +117,7 @@ const WorkerLogin = () => {
   const [otp, setOtp] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const API = "http://localhost:5001/api/auth"
+  const API = "https://rozgarsetu-niht.onrender.com/api/auth"
 
   // SEND OTP
   const handleSendOtp = async () => {

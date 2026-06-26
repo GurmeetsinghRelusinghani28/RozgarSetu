@@ -71,7 +71,7 @@ const RozgarMitra = () => {
 
     try {
       const res = await axios.post(
-        'http://localhost:5001/api/ai/rozgar-mitra',
+        'https://rozgarsetu-niht.onrender.com/api/ai/rozgar-mitra',
         { text },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -106,7 +106,7 @@ const RozgarMitra = () => {
       const extension = blob.type.includes('mp4') ? 'mp4' : 'webm';
       formData.append('audio', blob, `rozgar-mitra.${extension}`);
 
-      const res = await axios.post('http://localhost:5001/api/ai/rozgar-mitra', formData, {
+      const res = await axios.post('https://rozgarsetu-niht.onrender.com/api/ai/rozgar-mitra', formData, {
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'multipart/form-data',
@@ -178,7 +178,7 @@ const RozgarMitra = () => {
     setApplyingId(projectId);
     try {
       await axios.post(
-        `http://localhost:5001/api/projects/${projectId}/apply`,
+        `https://rozgarsetu-niht.onrender.com/api/projects/${projectId}/apply`,
         {},
         { headers: { Authorization: `Bearer ${token}` } }
       );

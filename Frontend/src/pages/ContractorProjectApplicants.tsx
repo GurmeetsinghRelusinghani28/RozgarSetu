@@ -65,7 +65,7 @@ const ContractorProjectApplicants = () => {
         return;
       }
 
-      const res = await axios.get(`http://localhost:5001/api/projects/${projectId}/applicants`, {
+      const res = await axios.get(`https://rozgarsetu-niht.onrender.com/api/projects/${projectId}/applicants`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -96,7 +96,7 @@ const ContractorProjectApplicants = () => {
       }
 
       await axios.post(
-        `http://localhost:5001/api/ratings`,
+        `https://rozgarsetu-niht.onrender.com/api/ratings`,
         {
           toUserId: workerId,
           jobId: projectId,
@@ -119,7 +119,7 @@ const ContractorProjectApplicants = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.put(
-        `http://localhost:5001/api/projects/${projectId}/applicants/${workerId}/status`,
+        `https://rozgarsetu-niht.onrender.com/api/projects/${projectId}/applicants/${workerId}/status`,
         { status },
         { headers: { Authorization: `Bearer ${token}` } }
       );

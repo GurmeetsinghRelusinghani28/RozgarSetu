@@ -18,7 +18,7 @@ const skills = [
   { key: 'driver', icon: Car },
 ];
 
-const API = "http://localhost:5001/api/worker";
+const API = "https://rozgarsetu-niht.onrender.com/api/worker";
 
 const WorkerProfile = () => {
   const navigate = useNavigate();
@@ -105,7 +105,7 @@ const WorkerProfile = () => {
       }
 
       const res = await axios.post(
-        "http://localhost:5001/api/ai/parse-profile-text",
+        "https://rozgarsetu-niht.onrender.com/api/ai/parse-profile-text",
         { text: voiceText },
         {
           headers: { Authorization: `Bearer ${token}` },

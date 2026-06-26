@@ -33,7 +33,7 @@ const WorkerApplications = () => {
     try {
       setLoading(true);
       const token = localStorage.getItem('token');
-      const res = await axios.get('http://localhost:5001/api/projects/contractor-applications', {
+      const res = await axios.get('https://rozgarsetu-niht.onrender.com/api/projects/contractor-applications', {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.data.success) {
@@ -55,7 +55,7 @@ const WorkerApplications = () => {
     try {
       const token = localStorage.getItem('token');
       const res = await axios.put(
-        `http://localhost:5001/api/projects/${projectId}/applicants/${workerId}/status`,
+        `https://rozgarsetu-niht.onrender.com/api/projects/${projectId}/applicants/${workerId}/status`,
         { status: action },
         { headers: { Authorization: `Bearer ${token}` } }
       );

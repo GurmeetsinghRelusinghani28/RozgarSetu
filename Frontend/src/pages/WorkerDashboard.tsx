@@ -8,7 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import BottomNav from '@/components/BottomNav';
 
-const API = "http://localhost:5001/api/worker";
+const API = "https://rozgarsetu-niht.onrender.com/api/worker";
 
 interface Notification {
   id: number;

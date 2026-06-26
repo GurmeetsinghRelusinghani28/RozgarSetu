@@ -5,8 +5,8 @@ import { io, Socket } from 'socket.io-client';
 import { ArrowLeft, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
-const API_BASE_URL = 'http://localhost:5001/api';
-const HOST_URL = 'http://localhost:5001';
+const API_BASE_URL = 'https://rozgarsetu-niht.onrender.com/api';
+const HOST_URL = 'https://rozgarsetu-niht.onrender.com';
 
 const ChatScreen = () => {
   const { jobId, workerId } = useParams();

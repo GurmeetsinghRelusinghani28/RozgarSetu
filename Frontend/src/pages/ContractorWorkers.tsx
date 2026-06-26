@@ -32,7 +32,7 @@ const ContractorWorkers = () => {
       const params: Record<string, string> = {}
       if (search.trim()) params.search = search.trim()
 
-      const res = await axios.get('http://localhost:5001/api/projects/workers', {
+      const res = await axios.get('https://rozgarsetu-niht.onrender.com/api/projects/workers', {
         headers: { Authorization: `Bearer ${token}` },
         params
       })

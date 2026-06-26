@@ -173,7 +173,7 @@ const CreateProject = () => {
       setAiError('')
       const token = localStorage.getItem("token")
       const res = await axios.post(
-        "http://localhost:5001/api/ai/parse-project-text",
+        "https://rozgarsetu-niht.onrender.com/api/ai/parse-project-text",
         { text: aiText.trim() },
         {
           headers: {
@@ -205,7 +205,7 @@ const CreateProject = () => {
       formData.append('audio', audioBlob, `project-voice.${extension}`)
 
       const res = await axios.post(
-        "http://localhost:5001/api/ai/parse-project-audio",
+        "https://rozgarsetu-niht.onrender.com/api/ai/parse-project-audio",
         formData,
         {
           headers: {
@@ -290,7 +290,7 @@ const CreateProject = () => {
       const token = localStorage.getItem("token")
 
       const res = await axios.post(
-        "http://localhost:5001/api/projects/create",
+        "https://rozgarsetu-niht.onrender.com/api/projects/create",
         {
           projectTitle,
           location,

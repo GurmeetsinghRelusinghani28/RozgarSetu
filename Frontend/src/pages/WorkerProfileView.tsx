@@ -46,7 +46,7 @@ const WorkerProfileView = () => {
         return;
       }
 
-      const res = await axios.get('http://localhost:5001/api/worker/profile', {
+      const res = await axios.get('https://rozgarsetu-niht.onrender.com/api/worker/profile', {
         headers: { Authorization: `Bearer ${token}` },
       });
 

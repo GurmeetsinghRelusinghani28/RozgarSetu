@@ -123,7 +123,7 @@ const ContractorDashboard = () => {
       const token = localStorage.getItem("token")
 
       const res = await axios.get(
-        "http://localhost:5001/api/projects/contractor-projects",
+        "https://rozgarsetu-niht.onrender.com/api/projects/contractor-projects",
         {
           headers: {
             Authorization: `Bearer ${token}`

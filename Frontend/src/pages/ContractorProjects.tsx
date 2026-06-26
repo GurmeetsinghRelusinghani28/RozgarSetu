@@ -33,7 +33,7 @@ const ContractorProjects = () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const res = await axios.get('http://localhost:5001/api/projects/contractor-projects', {
+      const res = await axios.get('https://rozgarsetu-niht.onrender.com/api/projects/contractor-projects', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -53,7 +53,7 @@ const ContractorProjects = () => {
     try {
       const token = localStorage.getItem('token')
       const res = await axios.put(
-        `http://localhost:5001/api/projects/${projectId}/status`,
+        `https://rozgarsetu-niht.onrender.com/api/projects/${projectId}/status`,
         { status },
         {
           headers: {
@@ -75,7 +75,7 @@ const ContractorProjects = () => {
   const deleteProject = async (projectId: string) => {
     try {
       const token = localStorage.getItem('token')
-      await axios.delete(`http://localhost:5001/api/projects/${projectId}`, {
+      await axios.delete(`https://rozgarsetu-niht.onrender.com/api/projects/${projectId}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }

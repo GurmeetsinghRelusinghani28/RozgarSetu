@@ -34,7 +34,7 @@ const ContractorReview = () => {
       }
 
       await axios.post(
-        `http://localhost:5001/api/worker/reviews/${workerId}`,
+        `https://rozgarsetu-niht.onrender.com/api/worker/reviews/${workerId}`,
         { rating, comment },
         { headers: { Authorization: `Bearer ${token}` } }
       );

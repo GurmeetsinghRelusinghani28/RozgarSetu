@@ -33,7 +33,7 @@ const ContractorProfile = () => {
     try {
       setLoading(true)
       const token = localStorage.getItem('token')
-      const res = await axios.get('http://localhost:5001/api/auth/profile', {
+      const res = await axios.get('https://rozgarsetu-niht.onrender.com/api/auth/profile', {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -65,7 +65,7 @@ const ContractorProfile = () => {
         projectsCompleted: profile.projectsCompleted
       }
 
-      const res = await axios.put('http://localhost:5001/api/auth/profile', payload, {
+      const res = await axios.put('https://rozgarsetu-niht.onrender.com/api/auth/profile', payload, {
         headers: {
           Authorization: `Bearer ${token}`
         }

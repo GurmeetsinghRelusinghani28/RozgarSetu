@@ -106,7 +106,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 
-const API = "http://localhost:5001/api";
+const API = "https://rozgarsetu-niht.onrender.com/api";
 
 const ContractorLogin = () => {
   const navigate = useNavigate();
